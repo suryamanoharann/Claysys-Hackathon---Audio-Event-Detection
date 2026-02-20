@@ -10,6 +10,6 @@ A system for real-time detection of critical audio events—such as glass breaki
 
 ## Tech Stack
 - Python
-- Machine Learning (Audio Event Detection models)
+- React
 - Libraries: Librosa, TensorFlow/PyTorch
-- Deployment: Flask / Streamlit (optional)
+
