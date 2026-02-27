@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Intelligence Alert System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .upload-card { border: 2px dashed #b5b5b5; border-radius: 12px; padding: 40px; background: #fff; transition: 0.3s; }
+        .upload-card:hover { border-color: #0d6efd; background: #f8fbff; }
+        .alert-custom { border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-weight: 500; }
+        #loader { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center mb-4">
+            <h2 class="fw-bold"><i class="bi bi-shield-lock-fill text-primary"></i> Urban Audio Event Monitor</h2>
+            <p class="text-muted">Upload environmental audio to trigger contextual situational alerts.</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="upload-card text-center shadow-sm mb-4">
+                <i class="bi bi-mic-fill display-3 text-secondary mb-3"></i>
+                <h5 class="fw-bold">Upload Audio Sample</h5>
+                <p class="text-muted small">Supports .wav files (up to 4 seconds)</p>
+                <form id="uploadForm">
+                    <input type="file" id="audioFile" class="form-control mb-3" accept=".wav" required>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">Analyze Environment</button>
+                </form>
+            </div>
+
+            <div id="loader" class="text-center mb-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted fw-bold">Extracting MFCCs & Classifying...</p>
+            </div>
+
+            <div id="alertZone"></div>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('audioFile');
+        const alertZone = document.getElementById('alertZone');
+        const loader = document.getElementById('loader');
+        
+        if (fileInput.files.length === 0) return;
+
+        // UI Updates
+        alertZone.innerHTML = '';
+        loader.style.display = 'block';
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            loader.style.display = 'none';
+
+            if (data.error) {
+                showAlert('danger', 'Error', data.error, 'bi-exclamation-triangle-fill');
+            } else {
+                // Map the backend 'type' to Bootstrap color classes and icons
+                let icon = 'bi-info-circle-fill';
+                if (data.type === 'danger') icon = 'bi-exclamation-octagon-fill';
+                if (data.type === 'warning') icon = 'bi-cone-striped';
+                if (data.type === 'success') icon = 'bi-check-circle-fill';
+
+                showAlert(data.type, data.name, data.msg, icon);
+            }
+        } catch (error) {
+            loader.style.display = 'none';
+            showAlert('danger', 'System Failure', 'Could not reach the classification engine.', 'bi-x-circle-fill');
+        }
+    });
+
+    // Helper function to render Bootstrap alerts
+    function showAlert(type, title, message, icon) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-custom d-flex align-items-center p-4" role="alert">
+                <i class="bi ${icon} fs-1 me-4"></i>
+                <div>
+                    <h5 class="alert-heading fw-bold mb-1">${title.toUpperCase()} DETECTED</h5>
+                    <p class="mb-0 text-dark opacity-75">${message}</p>
+                </div>
+            </div>
+        `;
+        document.getElementById('alertZone').innerHTML = alertHtml;
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
